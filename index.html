@@ -12,31 +12,28 @@
         h1 { margin: 0; text-transform: uppercase; letter-spacing: 2px; }
         .stats { font-weight: bold; margin-top: 5px; font-size: 0.9em; }
 
-        /* Advanced Search Panel */
         .search-panel { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
         .search-panel input { padding: 10px; border: 2px solid #000; font-family: inherit; outline: none; flex: 1 1 200px; box-sizing: border-box; }
         .year-range { display: flex; align-items: center; gap: 10px; flex: 1 1 300px; }
         .year-range input { min-width: 80px; flex: 1; }
 
-        /* Table Design */
         .table-container { width: 100%; overflow-x: auto; margin-top: 20px; }
         table { width: 100%; min-width: 600px; border-collapse: collapse; table-layout: fixed; }
         th { text-align: left; border-bottom: 2px solid #000; padding: 10px; font-size: 0.8em; background: #fff; position: sticky; top: 0; user-select: none; }
         td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         
-        /* Column Widths */
         .col-title { width: 45%; cursor: pointer; }
         .col-author { width: 35%; }
         .col-year { width: 20%; cursor: pointer; }
 
-        /* Hover effects for clickable headers */
         .col-title:hover, .col-year:hover { background: #f0f0f0; }
-
         .letter-divider { background: #000; color: #fff; padding: 5px 10px; font-weight: bold; }
-        a { color: #000; text-decoration: none; font-weight: bold; }
-        a:hover { background: #000; color: #fff; }
 
-        /* Mobile Responsiveness */
+        /* NEW: Styling for the Format Links next to the title */
+        .format-links { display: inline-flex; gap: 5px; margin-left: 10px; vertical-align: middle; }
+        .format-links a { font-size: 0.75em; padding: 2px 6px; border: 1px solid #000; border-radius: 3px; font-weight: normal; color: #000; text-decoration: none; }
+        .format-links a:hover { background: #000; color: #fff; }
+
         @media (max-width: 600px) {
             .search-panel { flex-direction: column; }
             .year-range { width: 100%; }
@@ -51,12 +48,12 @@
         <div class="stats">Total Items: [<span id="book-count">0</span>]</div>
         
         <div class="search-panel">
-            <input type="search" id="searchTitle" oninput="debounceSearch()" placeholder="Filter by Title..." aria-label="Search by Title">
-            <input type="search" id="searchAuthor" oninput="debounceSearch()" placeholder="Filter by Author..." aria-label="Search by Author">
+            <input type="search" id="searchTitle" oninput="debounceSearch()" placeholder="Filter by Title...">
+            <input type="search" id="searchAuthor" oninput="debounceSearch()" placeholder="Filter by Author...">
             <div class="year-range">
-                <input type="text" id="yearFrom" oninput="debounceSearch()" placeholder="Year From (e.g., 5 BC)" aria-label="Start Year">
+                <input type="text" id="yearFrom" oninput="debounceSearch()" placeholder="Year From">
                 <span>—</span>
-                <input type="text" id="yearTo" oninput="debounceSearch()" placeholder="Year To (e.g., 1900)" aria-label="End Year">
+                <input type="text" id="yearTo" oninput="debounceSearch()" placeholder="Year To">
             </div>
         </div>
     </div>
@@ -65,9 +62,9 @@
         <table>
             <thead>
                 <tr>
-                    <th class="col-title" id="th-title" onclick="sortBy('title')" title="Click to sort by Title" tabindex="0">TITLE</th>
+                    <th class="col-title" id="th-title" onclick="sortBy('title')">TITLE</th>
                     <th class="col-author">AUTHOR/AUTHOR'S</th>
-                    <th class="col-year" id="th-year" onclick="sortBy('year')" title="Click to sort by Year" tabindex="0">YEAR</th>
+                    <th class="col-year" id="th-year" onclick="sortBy('year')">YEAR</th>
                 </tr>
             </thead>
             <tbody id="library-body">
@@ -81,7 +78,6 @@
         let sortAscending = true;
         let searchTimeout = null;
 
-        // Cache DOM elements so we only look for them once
         const DOM = {};
         window.addEventListener('DOMContentLoaded', () => {
             DOM.searchTitle = document.getElementById('searchTitle');
@@ -94,7 +90,6 @@
             DOM.yearHeader = document.getElementById('th-year');
         });
 
-        // Function to convert string years (like "375 BC" or "1838") into numbers
         function parseYear(yearStr) {
             if (!yearStr || yearStr === 'N/A') return 999999;
             let isBC = yearStr.toUpperCase().includes('BC');
@@ -103,64 +98,41 @@
             return isBC ? -num : num;
         }
 
-        // Debounce search to prevent lag when typing
         function debounceSearch() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                render();
-            }, 300);
+            searchTimeout = setTimeout(() => { render(); }, 300);
         }
 
-        // Function to update the visual arrows in the table headers
         function updateHeaders() {
-            // Using the cached DOM elements
             DOM.titleHeader.innerText = 'TITLE';
             DOM.yearHeader.innerText = 'YEAR';
-
             const arrow = sortAscending ? ' ▲' : ' ▼';
-            
-            if (currentSort === 'title') {
-                DOM.titleHeader.innerText = 'TITLE' + arrow;
-            } else if (currentSort === 'year') {
-                DOM.yearHeader.innerText = 'YEAR' + arrow;
-            }
+            if (currentSort === 'title') DOM.titleHeader.innerText = 'TITLE' + arrow;
+            else if (currentSort === 'year') DOM.yearHeader.innerText = 'YEAR' + arrow;
         }
 
-        // Sorting Logic using PRE-COMPUTED values
         function sortBy(field) {
-            if (currentSort === field) {
-                sortAscending = !sortAscending;
-            } else {
-                currentSort = field;
-                sortAscending = true;
-            }
+            if (currentSort === field) sortAscending = !sortAscending;
+            else { currentSort = field; sortAscending = true; }
 
             archiveData.sort((a, b) => {
                 if (field === 'year') {
-                    // Use pre-computed numbers instead of parsing every time
-                    let yearA = a._yNum;
-                    let yearB = b._yNum;
-                    
+                    let yearA = a._yNum, yearB = b._yNum;
                     if (yearA === 999999) return 1;
                     if (yearB === 999999) return -1;
                     return sortAscending ? (yearA - yearB) : (yearB - yearA);
                 } else {
-                    // Use pre-computed uppercase strings
-                    let titleA = a._tUpper;
-                    let titleB = b._tUpper;
-                    
+                    let titleA = a._tUpper, titleB = b._tUpper;
                     if (titleA < titleB) return sortAscending ? -1 : 1;
                     if (titleA > titleB) return sortAscending ? 1 : -1;
                     return 0;
                 }
             });
-
             updateHeaders();
             render();
         }
 
         function render() {
-            // Using cached DOM elements to grab input values
             const titleTerm = DOM.searchTitle.value.toUpperCase();
             const authorTerm = DOM.searchAuthor.value.toUpperCase();
             const yearFromStr = DOM.yearFrom.value.trim();
@@ -169,22 +141,18 @@
             const minYear = yearFromStr ? parseYear(yearFromStr) : -999999;
             const maxYear = yearToStr ? parseYear(yearToStr) : 999999;
 
-            // Using an Array to build HTML rows instead of string concatenation
             let htmlRows = [];
             let count = 0;
             let currentLetter = '';
-
             const isFiltering = titleTerm || authorTerm || yearFromStr || yearToStr;
             const showDividers = (currentSort === 'title' && sortAscending === true && !isFiltering);
 
             archiveData.forEach(book => {
-                // Check against pre-computed uppercase values and numbers
                 const matchTitle = book._tUpper.includes(titleTerm);
                 const matchAuthor = book._aUpper.includes(authorTerm);
                 const matchYear = (book._yNum >= minYear && book._yNum <= maxYear) || (!yearFromStr && !yearToStr);
 
                 if (matchTitle && matchAuthor && matchYear) {
-                    
                     if (showDividers) {
                         const firstChar = book._tUpper[0];
                         if (firstChar !== currentLetter) {
@@ -193,17 +161,18 @@
                         }
                     }
 
-                    // Handle EPUB vs PDF and the new "books" folder
-                    let fileLink = `books/${encodeURIComponent(book.f)}`;
-                    let targetAttr = `target="_blank"`; 
-                    
-                    if (book.f.toLowerCase().endsWith('.epub')) {
-                        fileLink = `reader.html?file=${encodeURIComponent('books/' + book.f)}`;
-                        targetAttr = ``; // Open EPUBs in the same tab
+                    // NEW: Generate the format buttons based on the database
+                    let linksHtml = '<span class="format-links">';
+                    if (book.epub) {
+                        linksHtml += `<a href="reader.html?file=${encodeURIComponent('books/' + book.base + '.epub')}">EPUB</a>`;
                     }
+                    if (book.pdf) {
+                        linksHtml += `<a href="books/${encodeURIComponent(book.base + '.pdf')}" target="_blank">PDF</a>`;
+                    }
+                    linksHtml += '</span>';
 
                     htmlRows.push(`<tr>
-                        <td><a href="${fileLink}" ${targetAttr}>${book.t}</a></td>
+                        <td>${book.t} ${linksHtml}</td>
                         <td>${book.a}</td>
                         <td>${book.y}</td>
                     </tr>`);
@@ -214,31 +183,24 @@
             if (count === 0) {
                 htmlRows.push(`<tr><td colspan="3" style="text-align: center; padding: 30px; font-style: italic;">No matches found in the archive.</td></tr>`);
             }
-
-            // Join the array into a single string and dump it to the DOM
             DOM.tbody.innerHTML = htmlRows.join('');
             DOM.countStr.innerText = count;
         }
 
-        // Load the external data.js file
         function loadData() {
             const script = document.createElement('script');
             script.src = 'data.js?v=' + new Date().getTime();
             script.onload = () => {
-                // PRE-COMPUTE HEAVY DATA ONCE ON LOAD
                 archiveData.forEach(book => {
                     book._tUpper = book.t.toUpperCase();
                     book._aUpper = book.a.toUpperCase();
                     book._yNum = parseYear(book.y);
                 });
-                
-                // Sort by Title A-Z as soon as the data loads
                 sortBy('title');
             };
             document.head.appendChild(script);
         }
 
-        // Ensure we load data only after the page (and our cached DOM variables) is ready
         window.onload = loadData;
     </script>
 </body>

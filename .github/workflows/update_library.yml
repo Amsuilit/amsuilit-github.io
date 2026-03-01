@@ -13,87 +13,96 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Update Database File and Clean Filenames
+      - name: Install Calibre
+        run: sudo apt-get update && sudo apt-get install -y calibre
+
+      - name: Update Database and Convert
         run: |
           python -c "
-          import os, re, json
+          import os, re, json, subprocess
           
           books_dir = 'books'
           data_file = 'data.js'
           if not os.path.exists(books_dir): os.makedirs(books_dir)
           
-          # Look for both PDFs and EPUBs
           files = sorted([f for f in os.listdir(books_dir) if f.lower().endswith(('.pdf', '.epub'))])
           
-          # 1. Load the existing database to 'remember' old metadata
           existing_db = []
           if os.path.exists(data_file):
               with open(data_file, 'r', encoding='utf-8') as f:
-                  content = f.read()
-                  # Extract the JSON array from the JavaScript variable
-                  match = re.search(r'archiveData\s*=\s*(\[.*?\]);', content, re.DOTALL)
+                  match = re.search(r'archiveData\s*=\s*(\[.*?\]);', f.read(), re.DOTALL)
                   if match:
-                      try:
-                          existing_db = json.loads(match.group(1))
-                      except json.JSONDecodeError:
-                          pass # Fallback to empty list if JSON is corrupted
+                      try: existing_db = json.loads(match.group(1))
+                      except: pass
                           
-          # Create a quick lookup dictionary of known files
-          known_files = {book['f']: book for book in existing_db}
+          # Keep track of known books to preserve metadata
+          known_books = {}
+          for book in existing_db:
+              base = book.get('base', book.get('f', '').rsplit('.', 1)[0])
+              known_books[base] = book
           
           def get_tag(f, tag):
               match = re.search(rf'{tag}=\[(.*?)\]', f, re.IGNORECASE)
               return match.group(1).strip() if match else 'N/A'
 
-          new_db = []
+          processed_bases = {}
+
           for f in files:
               old_path = os.path.join(books_dir, f)
-              
-              # 2. Check if we already know this file
-              if f in known_files:
-                  # If we do, keep the old metadata and skip renaming
-                  new_db.append(known_files[f])
-                  continue
-              
-              # Extract the extension so we don't accidentally turn an EPUB into a PDF
               base_name, ext = os.path.splitext(f)
               ext = ext.lower()
 
-              # 3. If it's a new file, extract metadata from the messy filename
               title = get_tag(f, 'Title')
-              if title == 'N/A': title = base_name
               author = get_tag(f, 'Author')
               year = get_tag(f, 'Year')
               
-              # 4. Generate a clean filename
-              clean_base = re.sub(r'[^a-zA-Z0-9]+', '-', f'{title} {year}').strip('-').lower()
+              # Fallback for already cleaned filenames
+              if title == 'N/A' and author == 'N/A':
+                  clean_base = base_name
+                  if clean_base in known_books:
+                      title = known_books[clean_base].get('t', 'Unknown')
+                      author = known_books[clean_base].get('a', 'Unknown')
+                      year = known_books[clean_base].get('y', 'N/A')
+                  else:
+                      title = base_name.replace('-', ' ').title()
+              else:
+                  clean_base = re.sub(r'[^a-zA-Z0-9]+', '-', f'{title} {year}').strip('-').lower()
+
               new_filename = f'{clean_base}{ext}'
               new_path = os.path.join(books_dir, new_filename)
               
-              # 5. Rename the file safely
               if old_path != new_path:
                   if not os.path.exists(new_path):
                       os.rename(old_path, new_path)
                   else:
-                      new_filename = f
+                      new_path = old_path
+                      clean_base = base_name 
+
+              # Auto-convert to EPUB (keeps original PDF)
+              if ext == '.pdf':
+                  epub_path = os.path.join(books_dir, f'{clean_base}.epub')
+                  if not os.path.exists(epub_path):
+                      print(f'Converting {new_filename} to EPUB...')
+                      subprocess.run(['ebook-convert', new_path, epub_path, '--enable-heuristics'])
               
-              # 6. Append the brand new data to the database
-              new_db.append({
-                  't': title,
-                  'a': author,
-                  'y': year,
-                  'f': new_filename
-              })
+              if clean_base not in processed_bases:
+                  processed_bases[clean_base] = {'t': title, 'a': author, 'y': year, 'base': clean_base}
+
+          # Check which formats actually exist for the final database
+          final_db = []
+          for base, data in processed_bases.items():
+              data['pdf'] = os.path.exists(os.path.join(books_dir, f'{base}.pdf'))
+              data['epub'] = os.path.exists(os.path.join(books_dir, f'{base}.epub'))
+              final_db.append(data)
           
-          # Write the updated database back to the file
           with open(data_file, 'w', encoding='utf-8') as f:
-              f.write('archiveData = ' + json.dumps(new_db) + ';')
+              f.write('archiveData = ' + json.dumps(final_db) + ';')
           "
 
-      - name: Save Data and Renamed Files
+      - name: Save Data and Files
         run: |
           git config --global user.name 'Archive-Bot'
           git config --global user.email 'bot@github.com'
           git add --all data.js books/
-          git commit -m "Database updated and files renamed" || exit 0
+          git commit -m "Auto-converted PDFs and updated library formats" || exit 0
           git push
