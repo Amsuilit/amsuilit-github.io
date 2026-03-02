@@ -10,7 +10,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/themes.css">
     <style>
-        /* Reader‑specific layout (no theme variables – those come from themes.css) */
+        /* Reader‑specific styles (unchanged) */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: "Courier New", Courier, monospace;
@@ -173,6 +173,7 @@
         }
         #resume-toast button:hover { background: #fff; color: #000; }
 
+        /* Theme overrides for reader UI */
         [data-theme="sepia"] {
             --bg: #f4ecd8;
             --text: #5c4a3a;
@@ -335,6 +336,7 @@
     <button onclick="dismissToast()">✕</button>
 </div>
 
+<!-- Scripts -->
 <script src="js/jszip.min.js" defer></script>
 <script src="js/epub.min.js" defer></script>
 <script src="js/themes.js" defer></script>

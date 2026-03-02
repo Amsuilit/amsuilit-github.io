@@ -1,4 +1,4 @@
-// js/reader.js – EPUB reader logic
+// js/reader.js
 (function() {
     'use strict';
 
@@ -226,7 +226,6 @@
         renderBookmarks();
     };
 
-    // Theme colors for book content – must match themes.css
     const THEMES = {
         light: { bg: '#ffffff', fg: '#000000' },
         dark:  { bg: '#1a1a1a', fg: '#e0e0e0' },
