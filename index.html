@@ -6,56 +6,266 @@
     <title>Digital Library Archive</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        :root { --bg: #ffffff; --text: #000000; --accent: #f4f4f4; }
-        body { background: var(--bg); color: var(--text); font-family: "Courier New", Courier, monospace; margin: 20px auto; max-width: 1100px; padding: 20px; line-height: 1.6; }
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --accent: #f4f4f4;
+            --border: #000000;
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+        }
+
+        [data-theme="dark"] {
+            --bg: #1a1a1a;
+            --text: #e0e0e0;
+            --accent: #2a2a2a;
+            --border: #444444;
+            --hover-bg: #e0e0e0;
+            --hover-text: #1a1a1a;
+        }
+
+        [data-theme="sepia"] {
+            --bg: #f4ecd8;
+            --text: #5c4a3a;
+            --accent: #e8dcc0;
+            --border: #8b7355;
+            --hover-bg: #5c4a3a;
+            --hover-text: #f4ecd8;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Courier New", Courier, monospace;
+            margin: 20px auto;
+            max-width: 1100px;
+            padding: 20px;
+            line-height: 1.6;
+            transition: background 0.3s, color 0.3s;
+        }
         
-        .header { border-bottom: 3px solid #000; padding-bottom: 20px; margin-bottom: 20px; }
-        h1 { margin: 0; text-transform: uppercase; letter-spacing: 2px; }
-        .stats { font-weight: bold; margin-top: 5px; font-size: 0.9em; }
+        .header {
+            border-bottom: 3px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
 
-        .search-panel { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
-        .search-panel input { padding: 10px; border: 2px solid #000; font-family: inherit; outline: none; flex: 1 1 200px; box-sizing: border-box; }
-        .year-range { display: flex; align-items: center; gap: 10px; flex: 1 1 300px; }
-        .year-range input { min-width: 80px; flex: 1; }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
 
-        .table-container { width: 100%; overflow-x: auto; margin-top: 20px; }
-        table { width: 100%; min-width: 600px; border-collapse: collapse; table-layout: fixed; }
-        th { text-align: left; border-bottom: 2px solid #000; padding: 10px; font-size: 0.8em; background: #fff; position: sticky; top: 0; user-select: none; }
-        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        h1 {
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .theme-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .theme-btn {
+            padding: 8px 16px;
+            border: 2px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-family: inherit;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .theme-btn:hover, .theme-btn.active {
+            background: var(--hover-bg);
+            color: var(--hover-text);
+        }
+
+        .stats {
+            font-weight: bold;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+
+        .search-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .search-panel input {
+            padding: 10px;
+            border: 2px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-family: inherit;
+            outline: none;
+            flex: 1 1 200px;
+            box-sizing: border-box;
+        }
+
+        .year-range {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1 1 300px;
+        }
+
+        .year-range input {
+            min-width: 80px;
+            flex: 1;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            min-width: 600px;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th {
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+            padding: 10px;
+            font-size: 0.8em;
+            background: var(--bg);
+            position: sticky;
+            top: 0;
+            user-select: none;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid var(--accent);
+            font-size: 0.9em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         
-        .col-title  { width: 45%; cursor: pointer; }
-        .col-author { width: 35%; }
-        .col-year   { width: 20%; cursor: pointer; }
+        .col-title {
+            width: 45%;
+            cursor: pointer;
+        }
 
-        .col-title:hover, .col-year:hover { background: #f0f0f0; }
-        .letter-divider { background: #000; color: #fff; padding: 5px 10px; font-weight: bold; }
-        a { color: #000; text-decoration: none; font-weight: bold; }
-        a:hover { background: #000; color: #fff; }
+        .col-author {
+            width: 35%;
+        }
 
-        .format-links { display: inline-flex; gap: 5px; margin-left: 10px; vertical-align: middle; }
-        .format-links a { font-size: 0.75em; padding: 2px 6px; border: 1px solid #000; border-radius: 3px; font-weight: normal; color: #000; text-decoration: none; }
-        .format-links a:hover { background: #000; color: #fff; }
+        .col-year {
+            width: 20%;
+            cursor: pointer;
+        }
+
+        .col-title:hover, .col-year:hover {
+            background: var(--accent);
+        }
+
+        .letter-divider {
+            background: var(--hover-bg);
+            color: var(--hover-text);
+            padding: 5px 10px;
+            font-weight: bold;
+        }
+
+        .title-text {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: normal;
+        }
+
+        .read-btn {
+            display: inline-block;
+            font-size: 0.75em;
+            padding: 4px 10px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            font-weight: bold;
+            color: var(--text);
+            text-decoration: none;
+            margin-left: 10px;
+            transition: all 0.2s;
+            background: var(--bg);
+        }
+
+        .read-btn:hover {
+            background: var(--hover-bg);
+            color: var(--hover-text);
+        }
+
+        .format-links {
+            display: inline-flex;
+            gap: 5px;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        .format-links a {
+            font-size: 0.75em;
+            padding: 2px 6px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            font-weight: normal;
+            color: var(--text);
+            text-decoration: none;
+            transition: all 0.2s;
+            background: var(--bg);
+        }
+
+        .format-links a:hover {
+            background: var(--hover-bg);
+            color: var(--hover-text);
+        }
 
         @media (max-width: 600px) {
-            .search-panel { flex-direction: column; }
-            .year-range { width: 100%; }
-            body { padding: 10px; }
+            .search-panel {
+                flex-direction: column;
+            }
+            .year-range {
+                width: 100%;
+            }
+            body {
+                padding: 10px;
+            }
+            .header-top {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>Digital Library Archive</h1>
+        <div class="header-top">
+            <h1>Digital Library Archive</h1>
+            <div class="theme-buttons">
+                <button class="theme-btn active" onclick="setTheme('light')">Light</button>
+                <button class="theme-btn" onclick="setTheme('dark')">Dark</button>
+                <button class="theme-btn" onclick="setTheme('sepia')">Sepia</button>
+            </div>
+        </div>
         <div class="stats">Total Items: [<span id="book-count">0</span>]</div>
         
         <div class="search-panel">
-            <input type="search" id="searchTitle"  oninput="debounceSearch()" placeholder="Filter by Title...">
+            <input type="search" id="searchTitle" oninput="debounceSearch()" placeholder="Filter by Title...">
             <input type="search" id="searchAuthor" oninput="debounceSearch()" placeholder="Filter by Author...">
             <div class="year-range">
                 <input type="text" id="yearFrom" oninput="debounceSearch()" placeholder="Year From">
                 <span>—</span>
-                <input type="text" id="yearTo"   oninput="debounceSearch()" placeholder="Year To">
+                <input type="text" id="yearTo" oninput="debounceSearch()" placeholder="Year To">
             </div>
         </div>
     </div>
@@ -64,9 +274,9 @@
         <table>
             <thead>
                 <tr>
-                    <th class="col-title"  id="th-title" onclick="sortBy('title')">TITLE</th>
+                    <th class="col-title" id="th-title" onclick="sortBy('title')">TITLE</th>
                     <th class="col-author">AUTHOR/AUTHOR'S</th>
-                    <th class="col-year"   id="th-year"  onclick="sortBy('year')">YEAR</th>
+                    <th class="col-year" id="th-year" onclick="sortBy('year')">YEAR</th>
                 </tr>
             </thead>
             <tbody id="library-body"></tbody>
@@ -74,27 +284,57 @@
     </div>
 
     <script>
-        let archiveData   = [];
-        let currentSort   = '';
+        let archiveData = [];
+        let currentSort = '';
         let sortAscending = true;
         let searchTimeout = null;
         const DOM = {};
 
+        // Theme management
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            
+            // Update button states
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        // Load saved theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            
+            // Update button states
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                const btnTheme = btn.textContent.toLowerCase();
+                if (btnTheme === savedTheme) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
-            DOM.searchTitle  = document.getElementById('searchTitle');
+            DOM.searchTitle = document.getElementById('searchTitle');
             DOM.searchAuthor = document.getElementById('searchAuthor');
-            DOM.yearFrom     = document.getElementById('yearFrom');
-            DOM.yearTo       = document.getElementById('yearTo');
-            DOM.tbody        = document.getElementById('library-body');
-            DOM.countStr     = document.getElementById('book-count');
-            DOM.titleHeader  = document.getElementById('th-title');
-            DOM.yearHeader   = document.getElementById('th-year');
+            DOM.yearFrom = document.getElementById('yearFrom');
+            DOM.yearTo = document.getElementById('yearTo');
+            DOM.tbody = document.getElementById('library-body');
+            DOM.countStr = document.getElementById('book-count');
+            DOM.titleHeader = document.getElementById('th-title');
+            DOM.yearHeader = document.getElementById('th-year');
+            
+            loadTheme();
         });
 
         function parseYear(yearStr) {
             if (!yearStr || yearStr === 'N/A') return 999999;
             const isBC = yearStr.toUpperCase().includes('BC');
-            const num  = parseInt(yearStr.replace(/[^0-9]/g, ''));
+            const num = parseInt(yearStr.replace(/[^0-9]/g, ''));
             if (isNaN(num)) return 999999;
             return isBC ? -num : num;
         }
@@ -106,10 +346,10 @@
 
         function updateHeaders() {
             DOM.titleHeader.innerText = 'TITLE';
-            DOM.yearHeader.innerText  = 'YEAR';
+            DOM.yearHeader.innerText = 'YEAR';
             const arrow = sortAscending ? ' ▲' : ' ▼';
             if (currentSort === 'title') DOM.titleHeader.innerText = 'TITLE' + arrow;
-            if (currentSort === 'year')  DOM.yearHeader.innerText  = 'YEAR'  + arrow;
+            if (currentSort === 'year') DOM.yearHeader.innerText = 'YEAR' + arrow;
         }
 
         function sortBy(field) {
@@ -122,7 +362,7 @@
                     return sortAscending ? a._yNum - b._yNum : b._yNum - a._yNum;
                 }
                 if (a._tUpper < b._tUpper) return sortAscending ? -1 : 1;
-                if (a._tUpper > b._tUpper) return sortAscending ?  1 : -1;
+                if (a._tUpper > b._tUpper) return sortAscending ? 1 : -1;
                 return 0;
             });
             updateHeaders();
@@ -130,20 +370,20 @@
         }
 
         function render() {
-            const titleTerm  = DOM.searchTitle.value.toUpperCase();
+            const titleTerm = DOM.searchTitle.value.toUpperCase();
             const authorTerm = DOM.searchAuthor.value.toUpperCase();
             const yearFromStr = DOM.yearFrom.value.trim();
-            const yearToStr   = DOM.yearTo.value.trim();
+            const yearToStr = DOM.yearTo.value.trim();
             const minYear = yearFromStr ? parseYear(yearFromStr) : -999999;
-            const maxYear = yearToStr   ? parseYear(yearToStr)   :  999999;
+            const maxYear = yearToStr ? parseYear(yearToStr) : 999999;
 
-            const isFiltering  = titleTerm || authorTerm || yearFromStr || yearToStr;
+            const isFiltering = titleTerm || authorTerm || yearFromStr || yearToStr;
             const showDividers = currentSort === 'title' && sortAscending && !isFiltering;
 
             let htmlRows = [], count = 0, currentLetter = '';
 
             archiveData.forEach(book => {
-                if (!book._tUpper.includes(titleTerm))  return;
+                if (!book._tUpper.includes(titleTerm)) return;
                 if (!book._aUpper.includes(authorTerm)) return;
                 const inYear = (!yearFromStr && !yearToStr) || (book._yNum >= minYear && book._yNum <= maxYear);
                 if (!inYear) return;
@@ -156,23 +396,23 @@
                     }
                 }
 
-                // EPUB is always the primary link — no PDF in the new pipeline
+                // EPUB is the primary format
                 const epubLink = book.epub
                     ? `reader.html?file=${encodeURIComponent('books/' + book.base + '.epub')}`
                     : null;
 
-                const titleHref = epubLink || '#';
+                // Read button (only if EPUB exists)
+                const readBtn = epubLink 
+                    ? `<a href="${epubLink}" class="read-btn">Read</a>`
+                    : '';
 
-                // Format buttons: EPUB reader + RTF download
+                // Additional format downloads
                 let linksHtml = '<span class="format-links">';
-                if (book.epub) linksHtml += `<a href="${epubLink}">EPUB</a>`;
-                if (book.rtf)  linksHtml += `<a href="books/${encodeURIComponent(book.base + '.rtf')}" download>RTF</a>`;
-                // Legacy PDF support (old entries in data.js)
-                if (book.pdf && !book.rtf) linksHtml += `<a href="books/${encodeURIComponent(book.base + '.pdf')}" target="_blank">PDF</a>`;
+                if (book.rtf) linksHtml += `<a href="books/${encodeURIComponent(book.base + '.rtf')}" download>RTF</a>`;
                 linksHtml += '</span>';
 
                 htmlRows.push(`<tr>
-                    <td><a href="${titleHref}">${book.t}</a> ${linksHtml}</td>
+                    <td><span class="title-text">${book.t}</span>${readBtn} ${linksHtml}</td>
                     <td>${book.a}</td>
                     <td>${book.y}</td>
                 </tr>`);
@@ -182,18 +422,18 @@
             if (count === 0) {
                 htmlRows.push(`<tr><td colspan="3" style="text-align:center;padding:30px;font-style:italic;">No matches found in the archive.</td></tr>`);
             }
-            DOM.tbody.innerHTML  = htmlRows.join('');
+            DOM.tbody.innerHTML = htmlRows.join('');
             DOM.countStr.innerText = count;
         }
 
         function loadData() {
-            const script  = document.createElement('script');
-            script.src    = 'data.js?v=' + Date.now();
+            const script = document.createElement('script');
+            script.src = 'data.js?v=' + Date.now();
             script.onload = () => {
                 archiveData.forEach(book => {
                     book._tUpper = (book.t || '').toUpperCase();
                     book._aUpper = (book.a || '').toUpperCase();
-                    book._yNum   = parseYear(book.y);
+                    book._yNum = parseYear(book.y);
                 });
                 sortBy('title');
             };

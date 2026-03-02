@@ -12,20 +12,22 @@
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
     <style>
         :root {
-            --bg: #f9f5ef; --text: #1a1a1a;
-            --panel: #fff; --border: #000;
-            --toolbar: #000; --toolbar-fg: #fff;
-            --toc-w: 280px;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: "Courier New", Courier, monospace;
-            background: var(--bg); color: var(--text);
-            height: 100dvh; display: flex; flex-direction: column;
-            overflow: hidden; user-select: none; -webkit-user-select: none;
-        }
+    --bg: #ffffff;
+    --text: #000000;
+    --border: #000000;
+}
 
-        /* TOOLBAR */
+[data-theme="dark"] {
+    --bg: #1a1a1a;
+    --text: #e0e0e0;
+    --border: #444444;
+}
+
+[data-theme="sepia"] {
+    --bg: #f4ecd8;
+    --text: #5c4a3a;
+    --border: #8b7355;
+}
         #toolbar {
             height: 52px; background: var(--toolbar); color: var(--toolbar-fg);
             display: flex; align-items: center; gap: 6px;
