@@ -237,16 +237,6 @@
     }
     window.deleteBM = deleteBM;
 
-    const THEMES = {
-        light: { bg: '#ffffff', fg: '#000000' },
-        dark:  { bg: '#1a1a1a', fg: '#e0e0e0' },
-        sepia: { bg: '#f4ecd8', fg: '#5c4a3a' },
-        forest: { bg: '#2c3e2c', fg: '#d0d9c0' },
-        ocean: { bg: '#003366', fg: '#cce6ff' },
-        highcontrast: { bg: '#000000', fg: '#ffff00' },
-        vintage: { bg: '#f2e6d8', fg: '#4f3a2b' },
-        monochrome: { bg: '#eeeeee', fg: '#222222' },
-    };
 
     function applyFont() {
         if (!rendition) return;
@@ -259,7 +249,7 @@
         EL.valLh.textContent   = lh;
         
         const theme = document.documentElement.getAttribute('data-theme') || 'light';
-        const t = THEMES[theme] || THEMES.light;
+const t = window.THEME_CONFIG[theme] || window.THEME_CONFIG.light;
 
         rendition.themes.fontSize(size + 'px');
 
