@@ -1,0 +1,37 @@
+/* css/themes.css */
+
+:root {
+    --bg: #ffffff;
+    --text: #000000;
+    --accent: #f4f4f4;
+    --border: #000000;
+    --hover-bg: #000000;
+    --hover-text: #ffffff;
+}
+
+[data-theme="dark"] {
+    --bg: #1a1a1a;
+    --text: #e0e0e0;
+    --accent: #2a2a2a;
+    --border: #444444;
+    --hover-bg: #e0e0e0;
+    --hover-text: #1a1a1a;
+}
+
+[data-theme="sepia"] {
+    --bg: #f4ecd8;
+    --text: #5c4a3a;
+    --accent: #e8dcc0;
+    --border: #8b7355;
+    --hover-bg: #5c4a3a;
+    --hover-text: #f4ecd8;
+}
+
+/* Optional: base body styles that are common (can also stay in each HTML if they differ) */
+body {
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.3s, color 0.3s;
+    font-family: "Courier New", Courier, monospace;
+    /* other common styles */
+}
