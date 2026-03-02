@@ -10,7 +10,6 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/themes.css">
     <style>
-        /* Reader‑specific styles (unchanged) */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: "Courier New", Courier, monospace;
@@ -20,7 +19,7 @@
         }
 
         #toolbar {
-            height: 52px; background: var(--toolbar); color: var(--toolbar-fg);
+            min-height: 52px; background: var(--toolbar); color: var(--toolbar-fg);
             display: flex; align-items: center; gap: 6px;
             padding: 0 12px; flex-shrink: 0; z-index: 100;
             padding-top: env(safe-area-inset-top);
@@ -41,21 +40,31 @@
         #prog-wrap { height: 3px; background: #333; flex-shrink: 0; }
         #prog-bar  { height: 100%; background: #fff; width: 0%; transition: width .4s; }
 
-        .overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,.45); z-index: 140; display: none;
-        }
+        .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.45); z-index: 140; display: none; }
         .overlay.open { display: block; }
 
-        #font-panel {
+        .panel-header {
+            padding: 14px 16px; font-size: 0.72em; letter-spacing: 2px;
+            text-transform: uppercase; border-bottom: 1px solid var(--border, #eee); font-weight: bold;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .panel-close {
+            background: none; border: 1px solid currentColor; color: inherit;
+            font-family: inherit; font-size: 1.2em; padding: 2px 8px; line-height: 1;
+            cursor: pointer; border-radius: 3px; opacity: 0.5; transition: opacity .15s;
+        }
+        .panel-close:hover { opacity: 1; }
+
+        #font-panel, #theme-panel, #bm-panel {
             position: absolute; top: 0; right: 0; width: 240px; height: 100%;
             background: var(--panel); border-left: 2px solid var(--border);
             display: flex; flex-direction: column; z-index: 200;
             transform: translateX(100%); transition: transform .2s; overflow-y: auto;
         }
-        #font-panel.open { transform: translateX(0); }
-        .fp-section { padding: 14px 16px; border-bottom: 1px solid #eee; }
-        .fp-label { font-size: 0.68em; letter-spacing: 2px; text-transform: uppercase; opacity: 0.55; margin-bottom: 10px; }
+        #bm-panel { width: 300px; }
+        #font-panel.open, #theme-panel.open, #bm-panel.open { transform: translateX(0); }
+        
+        .fp-section, .tp-section { padding: 14px 16px; border-bottom: 1px solid var(--border, #eee); }
         .fp-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .fp-row:last-child { margin-bottom: 0; }
         .fp-row label { font-size: 0.78em; min-width: 68px; opacity: 0.7; }
@@ -63,48 +72,22 @@
         .fp-row input[type=range] { flex: 1; accent-color: #000; }
         .fp-val { min-width: 32px; text-align: right; font-size: 0.8em; }
 
-        #theme-panel {
-            position: absolute; top: 0; right: 0; width: 240px; height: 100%;
-            background: var(--panel); border-left: 2px solid var(--border);
-            display: flex; flex-direction: column; z-index: 200;
-            transform: translateX(100%); transition: transform .2s; overflow-y: auto;
-        }
-        #theme-panel.open { transform: translateX(0); }
-        .tp-section { padding: 14px 16px; border-bottom: 1px solid #eee; }
-        .tp-label { font-size: 0.68em; letter-spacing: 2px; text-transform: uppercase; opacity: 0.55; margin-bottom: 10px; }
+        /* Match the Index page buttons perfectly */
         .theme-btns { display: flex; flex-wrap: wrap; gap: 8px; }
         .theme-btn {
-            flex: 1 0 calc(50% - 4px); padding: 8px; border: 2px solid #ccc; border-radius: 4px;
-            cursor: pointer; font-size: 0.75em; text-align: center; transition: border-color .15s;
+            flex: 1 0 calc(50% - 4px); padding: 8px; 
+            border: 2px solid var(--border); border-radius: 4px; 
+            background: var(--bg); color: var(--text); 
+            cursor: pointer; font-size: 0.75em; text-align: center; transition: all .15s;
         }
-        .theme-btn.active { border-color: #000; font-weight: bold; }
-        .theme-btn.t-light   { background: #ffffff; color: #000000; }
-        .theme-btn.t-dark    { background: #1a1a1a; color: #e0e0e0; }
-        .theme-btn.t-sepia   { background: #f4ecd8; color: #5c4a3a; }
-        .theme-btn.t-forest  { background: #2c3e2c; color: #d0d9c0; }
-        .theme-btn.t-ocean   { background: #003366; color: #cce6ff; }
-        .theme-btn.t-highcontrast { background: #000000; color: #ffff00; }
-        .theme-btn.t-vintage { background: #f2e6d8; color: #4f3a2b; }
-        .theme-btn.t-monochrome { background: #eeeeee; color: #222222; }
+        .theme-btn:hover, .theme-btn.active { 
+            background: var(--hover-bg); 
+            color: var(--hover-text); 
+        }
 
-        #bm-panel {
-            position: absolute; top: 0; right: 0; width: 300px; height: 100%;
-            background: var(--panel); border-left: 2px solid var(--border);
-            display: flex; flex-direction: column; z-index: 200;
-            transform: translateX(100%); transition: transform .2s;
-        }
-        #bm-panel.open { transform: translateX(0); }
-        #bm-header {
-            padding: 14px 16px; font-size: 0.72em; letter-spacing: 2px;
-            text-transform: uppercase; border-bottom: 1px solid #eee; font-weight: bold;
-            display: flex; justify-content: space-between; align-items: center;
-        }
         #bm-list { overflow-y: auto; flex: 1; }
-        .bm-item {
-            padding: 12px 16px; border-bottom: 1px solid #f0f0f0; cursor: pointer;
-            display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
-        }
-        .bm-item:hover { background: #f8f8f8; }
+        .bm-item { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; cursor: pointer; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .bm-item:hover { background: rgba(128,128,128,0.1); }
         .bm-text { font-size: 0.8em; flex: 1; }
         .bm-chapter { font-size: 0.72em; opacity: 0.5; margin-top: 3px; }
         .bm-del { background: none; border: none; cursor: pointer; opacity: 0.3; font-size: 1em; padding: 0 4px; }
@@ -119,18 +102,15 @@
             transition: width .2s, opacity .2s;
         }
         #toc-panel.hidden { width: 0; opacity: 0; pointer-events: none; }
-        #toc-header {
-            padding: 13px 16px 10px; font-size: 0.72em; letter-spacing: 2px;
-            text-transform: uppercase; border-bottom: 1px solid #eee; font-weight: bold;
-        }
+        #toc-header { padding: 13px 16px 10px; font-size: 0.72em; letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid var(--border, #eee); font-weight: bold; }
         #toc-list { overflow-y: auto; flex: 1; padding: 6px 0; }
         .toc-item {
             display: block; padding: 8px 16px; font-size: 0.81em; cursor: pointer;
             border-left: 3px solid transparent; color: var(--text); text-decoration: none;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .toc-item:hover { background: #f0f0f0; }
-        .toc-item.active { border-left-color: #000; font-weight: bold; background: #f5f5f5; }
+        .toc-item:hover { background: rgba(128,128,128,0.1); }
+        .toc-item.active { border-left-color: currentColor; font-weight: bold; background: rgba(128,128,128,0.15); }
         .toc-item.d1 { padding-left: 28px; opacity: 0.8; }
         .toc-item.d2 { padding-left: 40px; opacity: 0.65; }
         #toc-empty { padding: 18px 16px; font-size: 0.8em; opacity: 0.45; font-style: italic; }
@@ -138,20 +118,13 @@
         #viewer-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         #viewer { flex: 1; overflow: hidden; }
 
-        #loading {
-            position: absolute; inset: 0; background: var(--bg);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 14px; z-index: 300; font-size: 0.88em;
-        }
+        #loading { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 100; font-size: 0.88em; }
         #loading.gone { display: none; }
-        .spinner {
-            width: 30px; height: 30px; border: 3px solid #ccc; border-top-color: #000;
-            border-radius: 50%; animation: spin .7s linear infinite;
-        }
+        .spinner { width: 30px; height: 30px; border: 3px solid #ccc; border-top-color: currentColor; border-radius: 50%; animation: spin .7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
         #status {
-            height: 28px; background: #000; color: #fff;
+            min-height: 28px; background: #000; color: #fff;
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 14px; font-size: 0.72em; letter-spacing: 0.4px;
             flex-shrink: 0; gap: 8px; padding-bottom: env(safe-area-inset-bottom);
@@ -167,43 +140,20 @@
             opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap;
         }
         #resume-toast.show { opacity: 1; pointer-events: all; }
-        #resume-toast button {
-            background: none; border: 1px solid rgba(255,255,255,.5); color: #fff;
-            font-family: inherit; font-size: 0.9em; padding: 3px 10px; cursor: pointer; border-radius: 3px;
-        }
+        #resume-toast button { background: none; border: 1px solid rgba(255,255,255,.5); color: #fff; font-family: inherit; font-size: 0.9em; padding: 3px 10px; cursor: pointer; border-radius: 3px; }
         #resume-toast button:hover { background: #fff; color: #000; }
 
-        /* Theme overrides for reader UI */
-        [data-theme="sepia"] {
-            --bg: #f4ecd8;
-            --text: #5c4a3a;
-            --border: #8b7355;
-            --panel: #fdf5e6;
-            --toolbar: #5c4a3a;
-        }
-        [data-theme="dark"] {
-            --bg: #1a1a1a;
-            --text: #e0e0e0;
-            --border: #444444;
-            --panel: #222222;
-            --toolbar: #111111;
-        }
+        /* Reader component theme overrides */
         [data-theme="dark"] #prog-wrap { background: #333; }
         [data-theme="dark"] #prog-bar  { background: #888; }
         [data-theme="dark"] #status    { background: #111; }
-        [data-theme="dark"] .toc-item:hover  { background: #2a2a2a; }
-        [data-theme="dark"] .toc-item.active { background: #2a2a2a; border-left-color: #aaa; }
-        [data-theme="dark"] .bm-item:hover   { background: #2a2a2a; }
-        [data-theme="dark"] .fp-row select   { background: #333; color: #e0e0e0; border-color: #555; }
-        [data-theme="dark"] .theme-btn.t-dark { border-color: #fff; }
+        [data-theme="dark"] .fp-row select { background: #333; color: #e0e0e0; border-color: #555; }
+        [data-theme="dark"] .fp-row input[type=range] { accent-color: #aaa; }
 
-        [data-theme="sepia"] .toc-item:hover  { background: #ede3cc; }
-        [data-theme="sepia"] .toc-item.active { background: #ede3cc; border-left-color: #8b7355; }
         [data-theme="sepia"] #status   { background: #5c4a3a; }
         [data-theme="sepia"] #toolbar  { background: #5c4a3a; }
         [data-theme="sepia"] #prog-wrap { background: #c4a97a; }
         [data-theme="sepia"] #prog-bar  { background: #5c4a3a; }
-        [data-theme="sepia"] .theme-btn.t-sepia { border-color: #5c4a3a; }
 
         [data-theme="forest"] #prog-wrap { background: #2f4a2f; }
         [data-theme="forest"] #prog-bar  { background: #7a9e7a; }
@@ -215,12 +165,15 @@
         [data-theme="vintage"] #prog-bar  { background: #b0906a; }
         [data-theme="monochrome"] #prog-wrap { background: #aaa; }
         [data-theme="monochrome"] #prog-bar  { background: #333; }
+        [data-theme="dracula"] #prog-wrap { background: #44475a; }
+        [data-theme="dracula"] #prog-bar  { background: #bd93f9; }
+        [data-theme="dracula"] #status  { background: #191a21; }
+        [data-theme="cyberpunk"] #prog-wrap { background: #1a1a2e; }
+        [data-theme="cyberpunk"] #prog-bar  { background: #ff00ff; }
+        [data-theme="cyberpunk"] #status  { background: #05050a; }
 
-        :fullscreen #toolbar,
-        :fullscreen #prog-wrap,
-        :fullscreen #status { display: none !important; }
-        :-webkit-full-screen #toolbar,
-        :-webkit-full-screen #status { display: none !important; }
+        :fullscreen #toolbar, :fullscreen #prog-wrap, :fullscreen #status { display: none !important; }
+        :-webkit-full-screen #toolbar, :-webkit-full-screen #status { display: none !important; }
 
         @media (max-width: 640px) {
             #toc-panel { position: absolute; z-index: 150; height: 100%; }
@@ -250,17 +203,22 @@
 
 <div class="overlay" id="overlay" onclick="closeAllPanels()"></div>
 
-<!-- Theme Panel -->
 <div id="theme-panel">
-<div class="tp-section">
-        <div id="theme-button-container" class="theme-buttons"></div>
+    <div class="panel-header">
+        <span>Theme</span>
+        <button class="panel-close" onclick="toggleTheme()">✕</button>
+    </div>
+    <div class="tp-section">
+        <div id="theme-button-container" class="theme-btns"></div>
     </div>
 </div>
 
-<!-- Font Panel -->
 <div id="font-panel">
+    <div class="panel-header">
+        <span>Typography</span>
+        <button class="panel-close" onclick="toggleFont()">✕</button>
+    </div>
     <div class="fp-section">
-        <div class="fp-label">Typography</div>
         <div class="fp-row">
             <label>Font</label>
             <select id="sel-font" onchange="applyFont()">
@@ -288,9 +246,9 @@
 </div>
 
 <div id="bm-panel">
-    <div id="bm-header">
+    <div class="panel-header">
         <span>Bookmarks</span>
-        <button class="btn" onclick="toggleBM()">✕</button>
+        <button class="panel-close" onclick="toggleBM()">✕</button>
     </div>
     <div id="bm-list">
         <div id="bm-empty">No bookmarks yet. Press "Add" to save your position.</div>
@@ -326,7 +284,6 @@
     <button onclick="dismissToast()">✕</button>
 </div>
 
-<!-- Scripts -->
 <script src="js/jszip.min.js" defer></script>
 <script src="js/epub.min.js" defer></script>
 <script src="js/themes.js" defer></script>

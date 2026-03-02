@@ -36,7 +36,6 @@
         btnBm:        document.getElementById('btn-bm'),
         btnFont:      document.getElementById('btn-font'),
         btnFs:        document.getElementById('btn-fs'),
-        themePanelBtns: document.querySelectorAll('#theme-panel .theme-btn'),
     };
 
     if (!fileUrl) {
@@ -173,14 +172,10 @@
     }
     window.resumeReading = resumeReading;
 
-    function dismissToast() {
-        EL.resumeToast.classList.remove('show');
-    }
+    function dismissToast() { EL.resumeToast.classList.remove('show'); }
     window.dismissToast = dismissToast;
 
-    function go(dir) {
-        dir < 0 ? rendition.prev() : rendition.next();
-    }
+    function go(dir) { dir < 0 ? rendition.prev() : rendition.next(); }
     window.go = go;
 
     document.addEventListener('keyup', e => {
@@ -221,9 +216,7 @@
             const div = document.createElement('div');
             div.className = 'bm-item';
             div.innerHTML = `<div class="bm-text"><div>${bm.chapter || 'Position ' + (i + 1)}</div><div class="bm-chapter">${bm.added}</div></div><button class="bm-del" onclick="deleteBM(${i})">✕</button>`;
-            div.onclick = e => {
-                if (!e.target.classList.contains('bm-del')) { rendition.display(bm.cfi); toggleBM(); }
-            };
+            div.onclick = e => { if (!e.target.classList.contains('bm-del')) { rendition.display(bm.cfi); toggleBM(); } };
             frag.appendChild(div);
         });
         EL.bmList.innerHTML = '';
@@ -237,9 +230,8 @@
     }
     window.deleteBM = deleteBM;
 
-
     function applyFont() {
-        if (!rendition) return;
+        if (!rendition || !window.THEME_CONFIG) return;
 
         const family = EL.selFont.value;
         const size   = +EL.selSize.value;
@@ -249,7 +241,7 @@
         EL.valLh.textContent   = lh;
         
         const theme = document.documentElement.getAttribute('data-theme') || 'light';
-const t = window.THEME_CONFIG[theme] || window.THEME_CONFIG.light;
+        const t = window.THEME_CONFIG[theme] || window.THEME_CONFIG.light;
 
         rendition.themes.fontSize(size + 'px');
 
@@ -275,9 +267,7 @@ const t = window.THEME_CONFIG[theme] || window.THEME_CONFIG.light;
             'h3': { 'font-size': `${Math.round(size * 1.2)}px !important` },
             'h4, h5, h6': { 'font-size': `${Math.round(size * 1.1)}px !important` },
             
-            'svg text': {
-                'fill': `${t.fg} !important`
-            }
+            'svg text': { 'fill': `${t.fg} !important` }
         };
 
         rendition.themes.register('custom-reader-theme', rules);
@@ -289,8 +279,7 @@ const t = window.THEME_CONFIG[theme] || window.THEME_CONFIG.light;
 
     function toggleFS() {
         if (!document.fullscreenElement) {
-            (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)
-                .call(document.documentElement);
+            (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen).call(document.documentElement);
             EL.btnFs.textContent = '✕ Full';
         } else {
             (document.exitFullscreen || document.webkitExitFullscreen).call(document);

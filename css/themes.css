@@ -94,3 +94,51 @@
     --toolbar: #333333;
     --toolbar-fg: #ffffff;
 }
+
+[data-theme="dracula"] {
+    --bg: #282a36;
+    --text: #f8f8f2;
+    --accent: #44475a;
+    --border: #bd93f9;
+    --hover-bg: #bd93f9;
+    --hover-text: #282a36;
+    --panel: #282a36;
+    --toolbar: #191a21;
+    --toolbar-fg: #f8f8f2;
+}
+
+[data-theme="solarizedlight"] {
+    --bg: #fdf6e3;
+    --text: #657b83;
+    --accent: #eee8d5;
+    --border: #93a1a1;
+    --hover-bg: #93a1a1;
+    --hover-text: #fdf6e3;
+    --panel: #fdf6e3;
+    --toolbar: #eee8d5;
+    --toolbar-fg: #586e75;
+}
+
+[data-theme="solarizeddark"] {
+    --bg: #002b36;
+    --text: #839496;
+    --accent: #073642;
+    --border: #586e75;
+    --hover-bg: #586e75;
+    --hover-text: #002b36;
+    --panel: #002b36;
+    --toolbar: #073642;
+    --toolbar-fg: #93a1a1;
+}
+
+[data-theme="cyberpunk"] {
+    --bg: #0f0f1b;
+    --text: #00ffcc;
+    --accent: #1a1a2e;
+    --border: #ff00ff;
+    --hover-bg: #ff00ff;
+    --hover-text: #0f0f1b;
+    --panel: #0f0f1b;
+    --toolbar: #05050a;
+    --toolbar-fg: #ff00ff;
+}
