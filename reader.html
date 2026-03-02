@@ -260,7 +260,7 @@
     <div class="fp-section">
         <div class="fp-label">Theme</div>
         <div class="theme-btns">
-            <div class="theme-btn t-day active" onclick="setTheme('day')">Day</div>
+            <div class="theme-btn t-day" onclick="setTheme('day')">Day</div>
             <div class="theme-btn t-sepia" onclick="setTheme('sepia')">Sepia</div>
             <div class="theme-btn t-night" onclick="setTheme('night')">Night</div>
         </div>
@@ -333,52 +333,94 @@
 (function () {
 'use strict';
 
+// ── PWA ────────────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+// ── Setup ──────────────────────────────────────────────────────────────────
 const params  = new URLSearchParams(window.location.search);
 const fileUrl = params.get('file');
 const bookKey = 'book_' + (fileUrl || '').replace(/[^a-z0-9]/gi, '_');
 
+// ── Cache ALL DOM refs once ────────────────────────────────────────────────
+// Doing this here avoids repeated getElementById calls on every interaction.
+const EL = {
+    loading:      document.getElementById('loading'),
+    titleDisplay: document.getElementById('title-display'),
+    progBar:      document.getElementById('prog-bar'),
+    searchBar:    document.getElementById('search-bar'),
+    searchInput:  document.getElementById('search-input'),
+    searchRes:    document.getElementById('search-results'),
+    overlay:      document.getElementById('overlay'),
+    fontPanel:    document.getElementById('font-panel'),
+    bmPanel:      document.getElementById('bm-panel'),
+    bmList:       document.getElementById('bm-list'),
+    tocPanel:     document.getElementById('toc-panel'),
+    tocList:      document.getElementById('toc-list'),
+    viewer:       document.getElementById('viewer'),
+    resumeToast:  document.getElementById('resume-toast'),
+    stCh:         document.getElementById('st-ch'),
+    stSec:        document.getElementById('st-sec'),
+    stPct:        document.getElementById('st-pct'),
+    stTime:       document.getElementById('st-time'),
+    selFont:      document.getElementById('sel-font'),
+    selSize:      document.getElementById('sel-size'),
+    selLh:        document.getElementById('sel-lh'),
+    valSize:      document.getElementById('val-size'),
+    valLh:        document.getElementById('val-lh'),
+    btnToc:       document.getElementById('btn-toc'),
+    btnSearch:    document.getElementById('btn-search'),
+    btnBmAdd:     document.getElementById('btn-bm-add'),
+    btnBm:        document.getElementById('btn-bm'),
+    btnFont:      document.getElementById('btn-font'),
+    btnFs:        document.getElementById('btn-fs'),
+    themeBtns:    document.querySelectorAll('.theme-btn'),
+};
+
 if (!fileUrl) {
-    document.getElementById('loading').innerHTML = '<p style="color:#c00;padding:20px">Error: No book URL provided.</p>';
+    EL.loading.innerHTML = '<p style="color:#c00;padding:20px">Error: No book URL provided.</p>';
     return;
 }
 
-// Register PWA service worker
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
-
+// ── State ──────────────────────────────────────────────────────────────────
 let book, rendition;
 let tocEls = [], bookmarks = [], currentTheme = 'day';
 let totalSections = 0, currentCFI = null, currentChapter = '—';
 let searchMatches = [], searchIdx = 0, searchDebounce;
-let totalWords = 0, avgWPM = 250;
+let totalWords = 0;
 let tocOpen = true, fontOpen = false, bmOpen = false, searchOpen = false;
 
-// Load persisted data
-try { bookmarks = JSON.parse(localStorage.getItem(bookKey + '_bm') || '[]'); } catch(_) {}
+// Restore persisted state
+try { bookmarks    = JSON.parse(localStorage.getItem(bookKey + '_bm') || '[]'); } catch(_) {}
 try {
     const t = localStorage.getItem(bookKey + '_theme');
     if (t) { currentTheme = t; document.body.className = t === 'day' ? '' : t; }
 } catch(_) {}
 
-// ── Init ───────────────────────────────────────────────────────────────────
+// Apply correct active theme button immediately (single pass, no redundancy)
+EL.themeBtns.forEach(b => b.classList.toggle('active', b.classList.contains('t-' + currentTheme)));
+
+// ── Init EPUB ──────────────────────────────────────────────────────────────
 book = ePub(fileUrl);
-rendition = book.renderTo('viewer', { width: '100%', height: '100%', spread: 'none', flow: 'paginated' });
+rendition = book.renderTo(EL.viewer, { width: '100%', height: '100%', spread: 'none', flow: 'paginated' });
 rendition.display().catch(err => {
-    document.getElementById('loading').innerHTML = `<p style="color:#c00;padding:20px">Failed to load EPUB.<br><small>${err}</small></p>`;
+    EL.loading.innerHTML = `<p style="color:#c00;padding:20px">Failed to load EPUB.<br><small>${err}</small></p>`;
 });
 book.ready.then(onReady).catch(() => {
-    document.getElementById('loading').innerHTML = '<p style="color:#c00;padding:20px">Failed to parse EPUB.</p>';
+    EL.loading.innerHTML = '<p style="color:#c00;padding:20px">Failed to parse EPUB.</p>';
 });
 
+// ── Book Ready ─────────────────────────────────────────────────────────────
 function onReady() {
-    document.getElementById('loading').classList.add('gone');
+    EL.loading.classList.add('gone');
     totalSections = book.spine.items.length;
 
     let title = 'Untitled';
-    try { const m = book.packaging.metadata; if (m && m.title) title = m.title; } catch(_) {}
+    try { const m = book.packaging.metadata; if (m && m.title && m.title.trim()) title = m.title; } catch(_) {}
     if (title === 'Untitled')
-        title = decodeURIComponent(fileUrl.split('/').pop().replace('.epub',''))
-                    .replace(/-/g,' ').replace(/\b\w/g, c => c.toUpperCase());
-    document.getElementById('title-display').textContent = title;
+        title = decodeURIComponent(fileUrl.split('/').pop().replace('.epub', ''))
+                    .replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    EL.titleDisplay.textContent = title;
     document.title = title + ' — Reader';
 
     loadTOC();
@@ -402,33 +444,39 @@ function estimateWordCount() {
 
 function updateReadingTime(pct) {
     if (!totalWords || pct == null) return;
-    const rem = Math.round((1 - pct) * totalWords / avgWPM);
-    document.getElementById('st-time').textContent = rem > 1 ? `${rem} min left` : 'Almost done';
+    const rem = Math.round((1 - pct) * totalWords / 250);
+    EL.stTime.textContent = rem > 1 ? `${rem} min left` : 'Almost done';
 }
 
 // ── TOC ────────────────────────────────────────────────────────────────────
 function loadTOC() {
     const toc = book.navigation && book.navigation.toc;
-    if (!toc) { document.getElementById('toc-empty').textContent = 'No contents available.'; return; }
+    if (!toc) { EL.tocList.textContent = 'No contents available.'; return; }
     const render = items => {
-        if (!items || !items.length) { document.getElementById('toc-empty').textContent = 'No contents available.'; return; }
+        if (!items || !items.length) { EL.tocList.textContent = 'No contents available.'; return; }
         try { document.getElementById('toc-empty').remove(); } catch(_) {}
-        const list = document.getElementById('toc-list');
+        // Use DocumentFragment — single DOM insertion instead of one per item
+        const frag = document.createDocumentFragment();
         function addItems(arr, depth) {
             arr.forEach(item => {
                 const a = document.createElement('a');
                 a.className = 'toc-item' + (depth === 1 ? ' d1' : depth >= 2 ? ' d2' : '');
-                a.textContent = item.label.trim(); a.title = item.label.trim(); a.href = '#';
+                a.textContent = item.label.trim();
+                a.title       = item.label.trim();
+                a.href        = '#';
                 a.onclick = e => {
-                    e.preventDefault(); rendition.display(item.href); activateTOC(a);
+                    e.preventDefault();
+                    rendition.display(item.href);
+                    activateTOC(a);
                     if (window.innerWidth < 640) toggleTOC();
                 };
-                list.appendChild(a);
+                frag.appendChild(a);
                 tocEls.push({ el: a, href: item.href });
                 if (item.subitems && item.subitems.length) addItems(item.subitems, depth + 1);
             });
         }
         addItems(items, 0);
+        EL.tocList.appendChild(frag); // single reflow
     };
     typeof toc.then === 'function' ? toc.then(render) : render(toc);
 }
@@ -438,14 +486,18 @@ function activateTOC(activeEl) {
     if (activeEl) activeEl.classList.add('active');
 }
 
-// ── Location ───────────────────────────────────────────────────────────────
+// ── Location & Progress ────────────────────────────────────────────────────
 rendition.on('relocated', loc => {
     if (!loc) return;
     const pct = loc.start.percentage || 0;
-    document.getElementById('prog-bar').style.width = Math.round(pct * 100) + '%';
-    document.getElementById('st-pct').textContent   = Math.round(pct * 100) + '%';
-    document.getElementById('st-sec').textContent   = `${(loc.start.index||0)+1} / ${totalSections}`;
-    currentCFI = loc.start.cfi;
+    const pctDisplay = Math.round(pct * 100);
+
+    // Batch DOM updates
+    EL.progBar.style.width = pctDisplay + '%';
+    EL.stPct.textContent   = pctDisplay + '%';
+    EL.stSec.textContent   = `${(loc.start.index || 0) + 1} / ${totalSections}`;
+    currentCFI             = loc.start.cfi;
+
     updateReadingTime(pct);
     try { localStorage.setItem(bookKey + '_pos', currentCFI); } catch(_) {}
 
@@ -455,7 +507,7 @@ rendition.on('relocated', loc => {
         activateTOC(match.el);
         currentChapter = match.el.textContent.trim();
         const ch = currentChapter;
-        document.getElementById('st-ch').textContent = ch.length > 22 ? ch.slice(0, 22) + '…' : ch;
+        EL.stCh.textContent = ch.length > 22 ? ch.slice(0, 22) + '…' : ch;
     }
 });
 
@@ -463,16 +515,15 @@ rendition.on('relocated', loc => {
 function checkResume() {
     const saved = localStorage.getItem(bookKey + '_pos');
     if (!saved || saved === 'null') return;
-    const toast = document.getElementById('resume-toast');
-    toast.classList.add('show');
-    setTimeout(() => dismissToast(), 8000);
+    EL.resumeToast.classList.add('show');
+    setTimeout(dismissToast, 8000);
 }
 window.resumeReading = () => {
     const s = localStorage.getItem(bookKey + '_pos');
     if (s) rendition.display(s);
     dismissToast();
 };
-window.dismissToast = () => document.getElementById('resume-toast').classList.remove('show');
+window.dismissToast = () => EL.resumeToast.classList.remove('show');
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 window.go = dir => dir < 0 ? rendition.prev() : rendition.next();
@@ -503,23 +554,30 @@ window.addBookmark = () => {
     bookmarks.push({ cfi: currentCFI, chapter: currentChapter, added: new Date().toLocaleDateString() });
     try { localStorage.setItem(bookKey + '_bm', JSON.stringify(bookmarks)); } catch(_) {}
     renderBookmarks();
-    const btn = document.getElementById('btn-bm-add');
-    btn.classList.add('on'); setTimeout(() => btn.classList.remove('on'), 900);
+    EL.btnBmAdd.classList.add('on');
+    setTimeout(() => EL.btnBmAdd.classList.remove('on'), 900);
 };
 
 function renderBookmarks() {
-    const list = document.getElementById('bm-list');
     if (!bookmarks.length) {
-        list.innerHTML = '<div id="bm-empty">No bookmarks yet. Press 🔖 to save your position.</div>'; return;
+        EL.bmList.innerHTML = '<div id="bm-empty">No bookmarks yet. Press 🔖 to save your position.</div>';
+        return;
     }
-    list.innerHTML = '';
+    // Build with DocumentFragment — single reflow
+    const frag = document.createDocumentFragment();
     bookmarks.forEach((bm, i) => {
-        const div = document.createElement('div'); div.className = 'bm-item';
-        div.innerHTML = `<div class="bm-text"><div>${bm.chapter || 'Position ' + (i+1)}</div><div class="bm-chapter">${bm.added}</div></div><button class="bm-del" onclick="deleteBM(${i})">✕</button>`;
-        div.onclick = e => { if (!e.target.classList.contains('bm-del')) { rendition.display(bm.cfi); toggleBM(); } };
-        list.appendChild(div);
+        const div = document.createElement('div');
+        div.className = 'bm-item';
+        div.innerHTML = `<div class="bm-text"><div>${bm.chapter || 'Position ' + (i + 1)}</div><div class="bm-chapter">${bm.added}</div></div><button class="bm-del" onclick="deleteBM(${i})">✕</button>`;
+        div.onclick = e => {
+            if (!e.target.classList.contains('bm-del')) { rendition.display(bm.cfi); toggleBM(); }
+        };
+        frag.appendChild(div);
     });
+    EL.bmList.innerHTML = '';
+    EL.bmList.appendChild(frag);
 }
+
 window.deleteBM = i => {
     bookmarks.splice(i, 1);
     try { localStorage.setItem(bookKey + '_bm', JSON.stringify(bookmarks)); } catch(_) {}
@@ -528,21 +586,25 @@ window.deleteBM = i => {
 
 // ── Search ─────────────────────────────────────────────────────────────────
 window.onSearch = () => { clearTimeout(searchDebounce); searchDebounce = setTimeout(runSearch, 400); };
+
 function runSearch() {
-    const q = document.getElementById('search-input').value.trim();
-    const resEl = document.getElementById('search-results');
-    if (!q || q.length < 2) { resEl.textContent = ''; searchMatches = []; return; }
+    const q = EL.searchInput.value.trim();
+    if (!q || q.length < 2) { EL.searchRes.textContent = ''; searchMatches = []; return; }
     book.search(q).then(results => {
-        searchMatches = results; searchIdx = 0;
-        resEl.textContent = results.length ? `${results.length} result${results.length !== 1 ? 's' : ''}` : 'No results';
+        searchMatches = results;
+        searchIdx     = 0;
+        EL.searchRes.textContent = results.length
+            ? `${results.length} result${results.length !== 1 ? 's' : ''}`
+            : 'No results';
         if (results.length) jumpSearch(0);
-    }).catch(() => { resEl.textContent = 'Search unavailable.'; });
+    }).catch(() => { EL.searchRes.textContent = 'Search unavailable.'; });
 }
+
 function jumpSearch(i) {
     if (!searchMatches.length) return;
     searchIdx = ((i % searchMatches.length) + searchMatches.length) % searchMatches.length;
     rendition.display(searchMatches[searchIdx].cfi);
-    document.getElementById('search-results').textContent = `${searchIdx+1} / ${searchMatches.length}`;
+    EL.searchRes.textContent = `${searchIdx + 1} / ${searchMatches.length}`;
 }
 window.searchStep = dir => jumpSearch(searchIdx + dir);
 
@@ -552,77 +614,87 @@ const THEMES = {
     sepia: { bg: '#f4ecd8', fg: '#3b2f1e' },
     night: { bg: '#1a1a1a', fg: '#d4cdbf' },
 };
+
+// Single batched call via themes.default() — one override pass instead of 5
 window.applyFont = () => {
-    const family = document.getElementById('sel-font').value;
-    const size   = +document.getElementById('sel-size').value;
-    const lhRaw  = +document.getElementById('sel-lh').value;
-    const lh     = (lhRaw / 10).toFixed(1);
-    document.getElementById('val-size').textContent = size + 'px';
-    document.getElementById('val-lh').textContent   = lh;
+    const family = EL.selFont.value;
+    const size   = +EL.selSize.value;
+    const lh     = (+EL.selLh.value / 10).toFixed(1);
+    EL.valSize.textContent = size + 'px';
+    EL.valLh.textContent   = lh;
     const t = THEMES[currentTheme];
-    rendition.themes.override('font-family', family);
-    rendition.themes.override('font-size', size + 'px');
-    rendition.themes.override('line-height', lh);
-    rendition.themes.override('color', t.fg);
-    rendition.themes.override('background', t.bg);
+    rendition.themes.default({
+        'font-family': family,
+        'font-size':   size + 'px',
+        'line-height': lh,
+        'color':       t.fg,
+        'background':  t.bg,
+    });
 };
+
 window.setTheme = theme => {
     currentTheme = theme;
     document.body.className = theme === 'day' ? '' : theme;
-    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector('.t-' + theme).classList.add('active');
+    // Single loop, single classList update per button
+    EL.themeBtns.forEach(b => b.classList.toggle('active', b.classList.contains('t-' + theme)));
     applyFont();
     try { localStorage.setItem(bookKey + '_theme', theme); } catch(_) {}
 };
-// Restore theme-btn active state on load
-document.querySelector('.t-' + currentTheme).classList.add('active');
-if (currentTheme !== 'day') document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-document.querySelector('.t-' + currentTheme)?.classList.add('active');
 
 // ── Fullscreen ─────────────────────────────────────────────────────────────
 window.toggleFS = () => {
     if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen?.() || document.documentElement.webkitRequestFullscreen?.();
-        document.getElementById('btn-fs').textContent = '✕ Full';
+        (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)
+            .call(document.documentElement);
+        EL.btnFs.textContent = '✕ Full';
     } else {
-        document.exitFullscreen?.() || document.webkitExitFullscreen?.();
-        document.getElementById('btn-fs').textContent = '⛶';
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+        EL.btnFs.textContent = '⛶';
     }
 };
 
 // ── Panel Toggles ──────────────────────────────────────────────────────────
+// All panels now use cached EL refs — no getElementById on each call
+
 window.toggleTOC = () => {
     tocOpen = !tocOpen;
-    document.getElementById('toc-panel').classList.toggle('hidden', !tocOpen);
-    document.getElementById('btn-toc').classList.toggle('on', tocOpen);
+    EL.tocPanel.classList.toggle('hidden', !tocOpen);
+    EL.btnToc.classList.toggle('on', tocOpen);
 };
+
 window.toggleFont = () => {
     fontOpen = !fontOpen; bmOpen = false;
-    document.getElementById('font-panel').classList.toggle('open', fontOpen);
-    document.getElementById('bm-panel').classList.remove('open');
-    document.getElementById('overlay').classList.toggle('open', fontOpen);
-    document.getElementById('btn-font').classList.toggle('on', fontOpen);
-    document.getElementById('btn-bm').classList.remove('on');
+    EL.fontPanel.classList.toggle('open', fontOpen);
+    EL.bmPanel.classList.remove('open');
+    EL.overlay.classList.toggle('open', fontOpen);
+    EL.btnFont.classList.toggle('on', fontOpen);
+    EL.btnBm.classList.remove('on');
 };
+
 window.toggleBM = () => {
     bmOpen = !bmOpen; fontOpen = false;
-    document.getElementById('bm-panel').classList.toggle('open', bmOpen);
-    document.getElementById('font-panel').classList.remove('open');
-    document.getElementById('overlay').classList.toggle('open', bmOpen);
-    document.getElementById('btn-bm').classList.toggle('on', bmOpen);
-    document.getElementById('btn-font').classList.remove('on');
+    EL.bmPanel.classList.toggle('open', bmOpen);
+    EL.fontPanel.classList.remove('open');
+    EL.overlay.classList.toggle('open', bmOpen);
+    EL.btnBm.classList.toggle('on', bmOpen);
+    EL.btnFont.classList.remove('on');
 };
+
 window.toggleSearch = () => {
     searchOpen = !searchOpen;
-    document.getElementById('search-bar').classList.toggle('open', searchOpen);
-    document.getElementById('btn-search').classList.toggle('on', searchOpen);
-    if (searchOpen) document.getElementById('search-input').focus();
-    else { document.getElementById('search-input').value = ''; document.getElementById('search-results').textContent = ''; }
+    EL.searchBar.classList.toggle('open', searchOpen);
+    EL.btnSearch.classList.toggle('on', searchOpen);
+    if (searchOpen) EL.searchInput.focus();
+    else { EL.searchInput.value = ''; EL.searchRes.textContent = ''; }
 };
+
 window.closeAllPanels = () => {
     fontOpen = bmOpen = false;
-    ['font-panel','bm-panel','overlay'].forEach(id => document.getElementById(id).classList.remove('open'));
-    ['btn-font','btn-bm'].forEach(id => document.getElementById(id).classList.remove('on'));
+    EL.fontPanel.classList.remove('open');
+    EL.bmPanel.classList.remove('open');
+    EL.overlay.classList.remove('open');
+    EL.btnFont.classList.remove('on');
+    EL.btnBm.classList.remove('on');
 };
 
 })();
