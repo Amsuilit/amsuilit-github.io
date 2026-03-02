@@ -49,21 +49,6 @@
         #prog-wrap { height: 3px; background: #333; flex-shrink: 0; }
         #prog-bar  { height: 100%; background: #fff; width: 0%; transition: width .4s; }
 
-        /* SEARCH BAR */
-        #search-bar {
-            display: none; align-items: center; gap: 8px;
-            padding: 8px 14px; background: #111; border-bottom: 1px solid #333; flex-shrink: 0;
-        }
-        #search-bar.open { display: flex; }
-        #search-input {
-            flex: 1; background: #222; border: 1px solid #555; color: #fff;
-            font-family: inherit; font-size: 0.85em; padding: 6px 10px; border-radius: 3px; outline: none;
-        }
-        #search-input::placeholder { color: #666; }
-        #search-results { font-size: 0.75em; color: #aaa; white-space: nowrap; }
-        #search-nav { display: flex; gap: 4px; }
-        #search-nav .btn { font-size: 0.75em; padding: 4px 8px; }
-
         /* OVERLAY */
         .overlay {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -71,7 +56,7 @@
         }
         .overlay.open { display: block; }
 
-        /* FONT PANEL */
+        /* FONT PANEL (only typography now) */
         #font-panel {
             position: absolute; top: 0; right: 0; width: 240px; height: 100%;
             background: var(--panel); border-left: 2px solid var(--border);
@@ -87,6 +72,17 @@
         .fp-row select { flex: 1; padding: 5px; border: 1px solid #ccc; font-family: inherit; font-size: 0.82em; border-radius: 2px; }
         .fp-row input[type=range] { flex: 1; accent-color: #000; }
         .fp-val { min-width: 32px; text-align: right; font-size: 0.8em; }
+
+        /* THEME PANEL (new, same style as font panel) */
+        #theme-panel {
+            position: absolute; top: 0; right: 0; width: 240px; height: 100%;
+            background: var(--panel); border-left: 2px solid var(--border);
+            display: flex; flex-direction: column; z-index: 200;
+            transform: translateX(100%); transition: transform .2s; overflow-y: auto;
+        }
+        #theme-panel.open { transform: translateX(0); }
+        .tp-section { padding: 14px 16px; border-bottom: 1px solid #eee; }
+        .tp-label { font-size: 0.68em; letter-spacing: 2px; text-transform: uppercase; opacity: 0.55; margin-bottom: 10px; }
         .theme-btns { display: flex; gap: 8px; }
         .theme-btn {
             flex: 1; padding: 8px; border: 2px solid #ccc; border-radius: 4px;
@@ -190,13 +186,12 @@
         }
         #resume-toast button:hover { background: #fff; color: #000; }
 
-        /* THEMES */
+        /* THEMES (applied to body) */
         body.sepia { --bg: #f4ecd8; --text: #3b2f1e; --panel: #fdf5e6; --border: #8b7355; }
         body.night { --bg: #1a1a1a; --text: #d4cdbf; --panel: #222; --border: #444; --toolbar: #111; }
         body.night #prog-wrap { background: #333; }
         body.night #prog-bar  { background: #888; }
         body.night #status    { background: #111; }
-        body.night #search-bar { background: #0d0d0d; border-color: #222; }
         body.night .toc-item:hover  { background: #2a2a2a; }
         body.night .toc-item.active { background: #2a2a2a; border-left-color: #aaa; }
         body.night .bm-item:hover   { background: #2a2a2a; }
@@ -213,8 +208,7 @@
         /* Fullscreen: hide chrome */
         :fullscreen #toolbar,
         :fullscreen #prog-wrap,
-        :fullscreen #status,
-        :fullscreen #search-bar { display: none !important; }
+        :fullscreen #status { display: none !important; }
         :-webkit-full-screen #toolbar,
         :-webkit-full-screen #status { display: none !important; }
 
@@ -232,11 +226,11 @@
     <div class="sep"></div>
     <button class="btn" id="btn-toc" onclick="toggleTOC()">☰</button>
     <span id="title-display">Loading…</span>
-    <button class="btn hide-sm" id="btn-search" onclick="toggleSearch()">⌕ Search</button>
-    <button class="btn" id="btn-bm-add" onclick="addBookmark()" title="Bookmark this position">🔖</button>
+    <button class="btn" id="btn-theme" onclick="toggleTheme()">Theme</button>
+    <button class="btn" id="btn-bm-add" onclick="addBookmark()" title="Bookmark this position">➤</button>
     <button class="btn" id="btn-bm" onclick="toggleBM()">Bookmarks</button>
     <button class="btn" id="btn-font" onclick="toggleFont()">Aa</button>
-    <button class="btn" id="btn-fs" onclick="toggleFS()">⛶</button>
+    <button class="btn" id="btn-fs" onclick="toggleFS()">Full</button>
     <div class="sep"></div>
     <button class="btn" onclick="go(-1)">‹</button>
     <button class="btn" onclick="go(1)">›</button>
@@ -244,27 +238,22 @@
 
 <div id="prog-wrap"><div id="prog-bar"></div></div>
 
-<div id="search-bar">
-    <input id="search-input" type="search" placeholder="Search in book…" oninput="onSearch()">
-    <span id="search-results"></span>
-    <div id="search-nav">
-        <button class="btn" onclick="searchStep(-1)">↑</button>
-        <button class="btn" onclick="searchStep(1)">↓</button>
-        <button class="btn" onclick="toggleSearch()">✕</button>
-    </div>
-</div>
-
 <div class="overlay" id="overlay" onclick="closeAllPanels()"></div>
 
-<div id="font-panel">
-    <div class="fp-section">
-        <div class="fp-label">Theme</div>
+<!-- Theme Panel (new) -->
+<div id="theme-panel">
+    <div class="tp-section">
+        <div class="tp-label">Theme</div>
         <div class="theme-btns">
             <div class="theme-btn t-day" onclick="setTheme('day')">Day</div>
             <div class="theme-btn t-sepia" onclick="setTheme('sepia')">Sepia</div>
             <div class="theme-btn t-night" onclick="setTheme('night')">Night</div>
         </div>
     </div>
+</div>
+
+<!-- Font Panel (no theme section) -->
+<div id="font-panel">
     <div class="fp-section">
         <div class="fp-label">Typography</div>
         <div class="fp-row">
@@ -274,6 +263,9 @@
                 <option value="'Times New Roman', serif">Times New Roman</option>
                 <option value="'Palatino Linotype', serif">Palatino</option>
                 <option value="Arial, sans-serif">Arial</option>
+                <option value="Helvetica, sans-serif">Helvetica</option>
+                <option value="Verdana, sans-serif">Verdana</option>
+                <option value="Garamond, serif">Garamond</option>
                 <option value="'Courier New', monospace">Courier</option>
             </select>
         </div>
@@ -296,13 +288,13 @@
         <button class="btn" onclick="toggleBM()">✕</button>
     </div>
     <div id="bm-list">
-        <div id="bm-empty">No bookmarks yet. Press 🔖 to save your position.</div>
+        <div id="bm-empty">No bookmarks yet. Press "Add" to save your position.</div>
     </div>
 </div>
 
 <div id="main">
     <div id="toc-panel">
-        <div id="toc-header">Contents</div>
+        <div id="toc-header">☰</div>
         <div id="toc-list"><div id="toc-empty">Loading…</div></div>
     </div>
     <div id="viewer-wrap">
@@ -333,24 +325,20 @@
 (function () {
 'use strict';
 
-// ── PWA ────────────────────────────────────────────────────────────────────
+// PWA
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 
-// ── Setup ──────────────────────────────────────────────────────────────────
 const params  = new URLSearchParams(window.location.search);
 const fileUrl = params.get('file');
 const bookKey = 'book_' + (fileUrl || '').replace(/[^a-z0-9]/gi, '_');
 
-// ── Cache ALL DOM refs once ────────────────────────────────────────────────
 const EL = {
     loading:      document.getElementById('loading'),
     titleDisplay: document.getElementById('title-display'),
     progBar:      document.getElementById('prog-bar'),
-    searchBar:    document.getElementById('search-bar'),
-    searchInput:  document.getElementById('search-input'),
-    searchRes:    document.getElementById('search-results'),
     overlay:      document.getElementById('overlay'),
     fontPanel:    document.getElementById('font-panel'),
+    themePanel:   document.getElementById('theme-panel'), // new
     bmPanel:      document.getElementById('bm-panel'),
     bmList:       document.getElementById('bm-list'),
     tocPanel:     document.getElementById('toc-panel'),
@@ -367,12 +355,14 @@ const EL = {
     valSize:      document.getElementById('val-size'),
     valLh:        document.getElementById('val-lh'),
     btnToc:       document.getElementById('btn-toc'),
-    btnSearch:    document.getElementById('btn-search'),
+    btnTheme:     document.getElementById('btn-theme'), // new
     btnBmAdd:     document.getElementById('btn-bm-add'),
     btnBm:        document.getElementById('btn-bm'),
     btnFont:      document.getElementById('btn-font'),
     btnFs:        document.getElementById('btn-fs'),
-    themeBtns:    document.querySelectorAll('.theme-btn'),
+    themeBtns:    document.querySelectorAll('.theme-btn'), // includes both panels? careful: now there are two sets: one in theme panel, one in font panel? Actually we removed theme from font panel, so only theme panel has them.
+    // We'll need to get the theme panel buttons separately
+    themePanelBtns: document.querySelectorAll('#theme-panel .theme-btn'),
 };
 
 if (!fileUrl) {
@@ -380,14 +370,11 @@ if (!fileUrl) {
     return;
 }
 
-// ── State ──────────────────────────────────────────────────────────────────
 let book, rendition;
 let tocEls = [], bookmarks = [], currentTheme = 'day';
 let totalSections = 0, currentCFI = null, currentChapter = '—';
-let searchMatches = [], searchIdx = 0, searchDebounce;
 let totalWords = 0;
-let tocOpen = true, fontOpen = false, bmOpen = false, searchOpen = false;
-let bookReady = false; // ← new flag
+let tocOpen = true, fontOpen = false, bmOpen = false, themeOpen = false; // new
 
 // Restore persisted state
 try { bookmarks    = JSON.parse(localStorage.getItem(bookKey + '_bm') || '[]'); } catch(_) {}
@@ -396,10 +383,9 @@ try {
     if (t) { currentTheme = t; document.body.className = t === 'day' ? '' : t; }
 } catch(_) {}
 
-// Apply correct active theme button immediately
-EL.themeBtns.forEach(b => b.classList.toggle('active', b.classList.contains('t-' + currentTheme)));
+// Apply active theme button in the theme panel
+EL.themePanelBtns.forEach(b => b.classList.toggle('active', b.classList.contains('t-' + currentTheme)));
 
-// ── Init EPUB ──────────────────────────────────────────────────────────────
 book = ePub(fileUrl);
 rendition = book.renderTo(EL.viewer, { width: '100%', height: '100%', spread: 'none', flow: 'paginated' });
 rendition.display().catch(err => {
@@ -409,10 +395,8 @@ book.ready.then(onReady).catch(() => {
     EL.loading.innerHTML = '<p style="color:#c00;padding:20px">Failed to parse EPUB.</p>';
 });
 
-// ── Book Ready ─────────────────────────────────────────────────────────────
 function onReady() {
     EL.loading.classList.add('gone');
-    bookReady = true; // ← set flag
     totalSections = book.spine.items.length;
 
     let title = 'Untitled';
@@ -431,7 +415,6 @@ function onReady() {
     checkResume();
 }
 
-// ── Reading time estimate ──────────────────────────────────────────────────
 function estimateWordCount() {
     const sample = book.spine.items.slice(0, Math.min(3, book.spine.items.length));
     let count = 0, n = 0;
@@ -449,13 +432,11 @@ function updateReadingTime(pct) {
     EL.stTime.textContent = rem > 1 ? `${rem} min left` : 'Almost done';
 }
 
-// ── TOC ────────────────────────────────────────────────────────────────────
 function loadTOC() {
     const toc = book.navigation && book.navigation.toc;
     if (!toc) { EL.tocList.textContent = 'No contents available.'; return; }
     const render = items => {
         if (!items || !items.length) { EL.tocList.textContent = 'No contents available.'; return; }
-        // remove placeholder if present
         const emptyEl = document.getElementById('toc-empty');
         if (emptyEl) emptyEl.remove();
 
@@ -489,7 +470,6 @@ function activateTOC(activeEl) {
     if (activeEl) activeEl.classList.add('active');
 }
 
-// ── Location & Progress ────────────────────────────────────────────────────
 rendition.on('relocated', loc => {
     if (!loc) return;
     const pct = loc.start.percentage || 0;
@@ -513,7 +493,6 @@ rendition.on('relocated', loc => {
     }
 });
 
-// ── Resume ─────────────────────────────────────────────────────────────────
 function checkResume() {
     const saved = localStorage.getItem(bookKey + '_pos');
     if (!saved || saved === 'null') return;
@@ -527,7 +506,6 @@ window.resumeReading = () => {
 };
 window.dismissToast = () => EL.resumeToast.classList.remove('show');
 
-// ── Navigation ─────────────────────────────────────────────────────────────
 window.go = dir => dir < 0 ? rendition.prev() : rendition.next();
 
 document.addEventListener('keyup', e => {
@@ -536,11 +514,9 @@ document.addEventListener('keyup', e => {
     if (e.key === 'ArrowRight' || e.key === 'PageDown')  rendition.next();
     if (e.key === 'f') toggleFS();
     if (e.key === 'b') addBookmark();
-    if (e.key === '/') { e.preventDefault(); toggleSearch(); }
     if (e.key === 'Escape') closeAllPanels();
 });
 
-// Swipe gestures
 let tx = 0, ty = 0;
 document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
 document.addEventListener('touchend', e => {
@@ -550,7 +526,6 @@ document.addEventListener('touchend', e => {
     dx < 0 ? go(1) : go(-1);
 }, { passive: true });
 
-// ── Bookmarks ──────────────────────────────────────────────────────────────
 window.addBookmark = () => {
     if (!currentCFI || bookmarks.find(b => b.cfi === currentCFI)) return;
     bookmarks.push({ cfi: currentCFI, chapter: currentChapter, added: new Date().toLocaleDateString() });
@@ -562,7 +537,7 @@ window.addBookmark = () => {
 
 function renderBookmarks() {
     if (!bookmarks.length) {
-        EL.bmList.innerHTML = '<div id="bm-empty">No bookmarks yet. Press 🔖 to save your position.</div>';
+        EL.bmList.innerHTML = '<div id="bm-empty">No bookmarks yet. Press "Add" to save your position.</div>';
         return;
     }
     const frag = document.createDocumentFragment();
@@ -585,54 +560,6 @@ window.deleteBM = i => {
     renderBookmarks();
 };
 
-// ── SEARCH (FIXED) ─────────────────────────────────────────────────────────
-window.onSearch = () => { clearTimeout(searchDebounce); searchDebounce = setTimeout(runSearch, 400); };
-
-function runSearch() {
-    if (!bookReady) {
-        EL.searchRes.textContent = 'Book not ready';
-        return;
-    }
-    const q = EL.searchInput.value.trim().toLowerCase();
-    if (!q || q.length < 2) {
-        EL.searchRes.textContent = '';
-        searchMatches = [];
-        return;
-    }
-
-    EL.searchRes.textContent = 'Searching...';
-    searchMatches = [];
-    const items = book.spine.items;
-    let processed = 0;
-
-    items.forEach(item => {
-        item.load(book.load.bind(book)).then(doc => {
-            const text = (doc.body || doc).textContent.toLowerCase();
-            if (text.includes(q)) {
-                searchMatches.push({ href: item.href });
-            }
-        }).catch(() => {}).finally(() => {
-            processed++;
-            if (processed === items.length) {
-                searchIdx = 0;
-                EL.searchRes.textContent = searchMatches.length
-                    ? `${searchMatches.length} result${searchMatches.length !== 1 ? 's' : ''}`
-                    : 'No results';
-                if (searchMatches.length) jumpSearch(0);
-            }
-        });
-    });
-}
-
-function jumpSearch(i) {
-    if (!searchMatches.length) return;
-    searchIdx = ((i % searchMatches.length) + searchMatches.length) % searchMatches.length;
-    rendition.display(searchMatches[searchIdx].href);
-    EL.searchRes.textContent = `${searchIdx + 1} / ${searchMatches.length}`;
-}
-window.searchStep = dir => jumpSearch(searchIdx + dir);
-
-// ── Font & Theme ───────────────────────────────────────────────────────────
 const THEMES = {
     day:   { bg: '#f9f5ef', fg: '#1a1a1a' },
     sepia: { bg: '#f4ecd8', fg: '#3b2f1e' },
@@ -658,12 +585,12 @@ window.applyFont = () => {
 window.setTheme = theme => {
     currentTheme = theme;
     document.body.className = theme === 'day' ? '' : theme;
-    EL.themeBtns.forEach(b => b.classList.toggle('active', b.classList.contains('t-' + theme)));
+    // Update active state in theme panel only
+    EL.themePanelBtns.forEach(b => b.classList.toggle('active', b.classList.contains('t-' + theme)));
     applyFont();
     try { localStorage.setItem(bookKey + '_theme', theme); } catch(_) {}
 };
 
-// ── Fullscreen ─────────────────────────────────────────────────────────────
 window.toggleFS = () => {
     if (!document.fullscreenElement) {
         (document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)
@@ -671,11 +598,10 @@ window.toggleFS = () => {
         EL.btnFs.textContent = '✕ Full';
     } else {
         (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-        EL.btnFs.textContent = '⛶';
+        EL.btnFs.textContent = 'Full';
     }
 };
 
-// ── Panel Toggles ──────────────────────────────────────────────────────────
 window.toggleTOC = () => {
     tocOpen = !tocOpen;
     EL.tocPanel.classList.toggle('hidden', !tocOpen);
@@ -683,38 +609,47 @@ window.toggleTOC = () => {
 };
 
 window.toggleFont = () => {
-    fontOpen = !fontOpen; bmOpen = false;
+    fontOpen = !fontOpen; bmOpen = false; themeOpen = false;
     EL.fontPanel.classList.toggle('open', fontOpen);
     EL.bmPanel.classList.remove('open');
+    EL.themePanel.classList.remove('open');
     EL.overlay.classList.toggle('open', fontOpen);
     EL.btnFont.classList.toggle('on', fontOpen);
     EL.btnBm.classList.remove('on');
+    EL.btnTheme.classList.remove('on');
 };
 
 window.toggleBM = () => {
-    bmOpen = !bmOpen; fontOpen = false;
+    bmOpen = !bmOpen; fontOpen = false; themeOpen = false;
     EL.bmPanel.classList.toggle('open', bmOpen);
     EL.fontPanel.classList.remove('open');
+    EL.themePanel.classList.remove('open');
     EL.overlay.classList.toggle('open', bmOpen);
     EL.btnBm.classList.toggle('on', bmOpen);
     EL.btnFont.classList.remove('on');
+    EL.btnTheme.classList.remove('on');
 };
 
-window.toggleSearch = () => {
-    searchOpen = !searchOpen;
-    EL.searchBar.classList.toggle('open', searchOpen);
-    EL.btnSearch.classList.toggle('on', searchOpen);
-    if (searchOpen) EL.searchInput.focus();
-    else { EL.searchInput.value = ''; EL.searchRes.textContent = ''; }
+window.toggleTheme = () => {
+    themeOpen = !themeOpen; fontOpen = false; bmOpen = false;
+    EL.themePanel.classList.toggle('open', themeOpen);
+    EL.fontPanel.classList.remove('open');
+    EL.bmPanel.classList.remove('open');
+    EL.overlay.classList.toggle('open', themeOpen);
+    EL.btnTheme.classList.toggle('on', themeOpen);
+    EL.btnFont.classList.remove('on');
+    EL.btnBm.classList.remove('on');
 };
 
 window.closeAllPanels = () => {
-    fontOpen = bmOpen = false;
+    fontOpen = bmOpen = themeOpen = false;
     EL.fontPanel.classList.remove('open');
     EL.bmPanel.classList.remove('open');
+    EL.themePanel.classList.remove('open');
     EL.overlay.classList.remove('open');
     EL.btnFont.classList.remove('on');
     EL.btnBm.classList.remove('on');
+    EL.btnTheme.classList.remove('on');
 };
 
 })();
